@@ -1,0 +1,62 @@
+version: 2
+
+models:
+  - name: gold_churn_model_input
+    description: "Final ML-ready customer churn dataset with cleaned fields and engineered business flags."
+    columns:
+      - name: customer_id
+        description: "Unique customer identifier."
+        tests:
+          - not_null
+          - unique
+
+      - name: churn
+        description: "Target variable. 1 means churned, 0 means not churned."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+      - name: is_new_customer
+        description: "Flag indicating whether customer tenure is 6 months or less."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+      - name: low_satisfaction_flag
+        description: "Flag indicating low customer satisfaction."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+      - name: has_complaint
+        description: "Flag indicating whether the customer has complained."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+      - name: inactive_customer_flag
+        description: "Flag indicating customers with many days since last order."
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+
+  - name: gold_churned_users
+    description: "Subset of ML-ready dataset containing only customers who churned."
+    columns:
+      - name: customer_id
+        tests:
+          - not_null
+          - unique
+
+      - name: churn
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1]
