@@ -1,0 +1,12 @@
+churn_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: your_username
+      password: your_password
+      port: 5432
+      dbname: churn_project
+      schema: analytics
+      threads: 4
