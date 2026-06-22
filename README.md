@@ -1,5 +1,4 @@
-# Ecommerce_Churn_Prediction_Pipeline
-# Ecommerce Churn Prediction Pipeline
+# Ecommerce_Churn_Prediction_Machine_Learning_Pipeline
 
 ## Table of Contents
 
