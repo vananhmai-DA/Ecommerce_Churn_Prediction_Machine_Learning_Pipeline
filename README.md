@@ -7,22 +7,29 @@
   * [1.1 Abstract](#11-abstract)
   * [1.2 Business Problem](#12-business-problem)
   * [1.3 Dataset](#13-dataset)
+
 * [2. Data Pipeline](#2-data-pipeline)
 
   * [2.1 Project Workflow](#21-project-workflow)
   * [2.2 Tools and Technologies](#22-tools-and-technologies)
   * [2.3 Database and dbt Pipeline](#23-database-and-dbt-pipeline)
+
 * [3. Machine Learning](#3-machine-learning)
 
   * [3.1 Exploratory Data Analysis](#31-exploratory-data-analysis)
   * [3.2 Supervised Learning](#32-supervised-learning)
   * [3.3 Model Results](#33-model-results)
-  * [3.4 Prediction Output and Risk Segmentation](#34-prediction-output-and-risk-segmentation)
-  * [3.5 Unsupervised Learning: KMeans Segmentation](#35-unsupervised-learning-kmeans-segmentation)
+  * [3.4 Hyperparameter Tuning and Cross-Validation](#34-hyperparameter-tuning-and-cross-validation)
+  * [3.5 Threshold Analysis](#35-threshold-analysis)
+  * [3.6 SHAP Model Explainability](#36-shap-model-explainability)
+  * [3.7 Prediction Output and Risk Segmentation](#37-prediction-output-and-risk-segmentation)
+  * [3.8 Unsupervised Learning: KMeans Segmentation](#38-unsupervised-learning-kmeans-segmentation)
+
 * [4. Business Insights](#4-business-insights)
 
   * [4.1 Key Findings](#41-key-findings)
   * [4.2 Business Recommendations](#42-business-recommendations)
+
 * [5. Project Assets](#5-project-assets)
 
   * [5.1 Project Structure](#51-project-structure)
@@ -39,18 +46,24 @@ This project analyzes customer churn behavior for an ecommerce company and build
 
 The project has three main goals:
 
-* Explore the behavior of churned users through EDA
-* Build supervised learning models to predict customer churn
-* Segment churned users using KMeans clustering to support targeted promotion campaigns
+* Explore the behavior of churned users through exploratory data analysis.
+* Build supervised learning models to predict customer churn.
+* Segment churned users using KMeans clustering to support targeted promotion campaigns.
 
 The final supervised model is a Random Forest classifier. It was used to generate churn probability, predicted churn labels, and customer risk levels.
+
+To strengthen the machine learning layer, this project also includes:
+
+* Hyperparameter tuning with cross-validation
+* Threshold analysis for business decision-making
+* SHAP model explainability
 
 In addition, KMeans clustering was applied only to churned users (`churn == 1`) to identify different churned-user groups. The clustering result suggested two main churned-user segments:
 
 * Established High-Value Churned Customers
 * New One-Time Mobile Churned Customers
 
-This project also includes a more realistic data workflow using Python, PostgreSQL, dbt, SQL analysis, model outputs, and business recommendations.
+This project also includes a realistic data workflow using Python, PostgreSQL, dbt, SQL analysis, model outputs, and business recommendations.
 
 ---
 
@@ -119,6 +132,9 @@ Raw CSV
 → Exploratory Data Analysis
 → Supervised Learning
 → Model Evaluation
+→ Hyperparameter Tuning
+→ Threshold Analysis
+→ SHAP Explainability
 → Prediction Output
 → Risk Segmentation
 → KMeans Churned User Segmentation
@@ -147,6 +163,7 @@ This project was designed not only as a machine learning exercise, but also as a
 * Matplotlib
 * Seaborn
 * Scikit-learn
+* SHAP
 * Jupyter Notebook
 
 ### Version Control
@@ -292,7 +309,141 @@ The final model was saved to:
 
 ---
 
-## 3.4 Prediction Output and Risk Segmentation
+## 3.4 Hyperparameter Tuning and Cross-Validation
+
+To deepen the machine learning evaluation, Random Forest hyperparameter tuning was performed using `RandomizedSearchCV`.
+
+Notebook:
+
+```text
+04_ml_pipeline/tuning/random_forest_hyperparameter_tuning.ipynb
+```
+
+The tuning process used:
+
+* RandomizedSearchCV
+* 5-fold cross-validation
+* F1-score as the optimization metric
+
+F1-score was selected because the dataset is imbalanced and accuracy alone may not fully reflect the model's ability to identify churned customers.
+
+The tuning search tested parameters such as:
+
+* Number of trees
+* Maximum tree depth
+* Minimum samples split
+* Minimum samples per leaf
+* Maximum features
+* Class weight strategy
+
+### Tuning Results
+
+| Model                  | Accuracy | Precision | Recall | F1-score | ROC-AUC |
+| ---------------------- | -------: | --------: | -----: | -------: | ------: |
+| Baseline Random Forest |   0.9751 |    0.9655 | 0.8842 |   0.9231 |  0.9983 |
+| Tuned Random Forest    |   0.9680 |    0.9185 | 0.8895 |   0.9037 |  0.9951 |
+
+The tuned Random Forest slightly improved recall, but it reduced precision, F1-score, accuracy, and ROC-AUC.
+
+Therefore, the baseline Random Forest remained the selected final model.
+
+This shows that hyperparameter tuning was tested, but the simpler baseline Random Forest provided the better overall balance on the test set.
+
+Tuning outputs:
+
+```text
+05_outputs/model_results/random_forest_tuning_comparison.csv
+05_outputs/model_results/random_forest_randomized_search_cv_results.csv
+```
+
+---
+
+## 3.5 Threshold Analysis
+
+The selected Random Forest model outputs churn probabilities. By default, classification models often use a threshold of 0.50 to convert probabilities into class labels.
+
+However, in a churn prediction problem, the best threshold depends on the business objective.
+
+Notebook:
+
+```text
+04_ml_pipeline/evaluation/churn_threshold_analysis.ipynb
+```
+
+The threshold analysis compared multiple thresholds from 0.30 to 0.80 using:
+
+* Precision
+* Recall
+* F1-score
+* Number of customers flagged as churn
+
+Main interpretation:
+
+* Lower thresholds capture more churned customers but increase campaign cost.
+* Higher thresholds improve precision but may miss more churned customers.
+* Threshold 0.40 provides a strong balance between precision, recall, F1-score, and business actionability.
+
+Recommended operating threshold for retention campaigns:
+
+```text
+0.40
+```
+
+This does not replace the final model. Instead, it helps the company decide how aggressively to target customers for retention campaigns.
+
+Threshold outputs:
+
+```text
+05_outputs/model_results/threshold_analysis.csv
+05_outputs/figures/threshold_metric_comparison.png
+05_outputs/figures/threshold_customers_flagged.png
+```
+
+---
+
+## 3.6 SHAP Model Explainability
+
+SHAP was used to explain the selected Random Forest churn prediction model.
+
+Notebook:
+
+```text
+04_ml_pipeline/evaluation/churn_model_explainability_shap.ipynb
+```
+
+While traditional feature importance shows which variables are important overall, SHAP provides a more interpretable view of how features contribute to churn predictions.
+
+The most important SHAP features include:
+
+* Tenure
+* New customer flag
+* Complaint-related features
+* Days since last order
+* Number of addresses
+* Cashback amount
+* Warehouse-to-home distance
+* City tier
+* Satisfaction score
+* Product category features
+
+Key interpretation:
+
+* Tenure is the strongest driver of churn prediction.
+* New customers are a major churn-risk group.
+* Complaint behavior is a strong churn signal.
+* Engagement and purchase-related variables also influence churn prediction.
+* SHAP supports the business recommendation to prioritize low-tenure customers, complaint customers, and customers with weaker engagement signals.
+
+SHAP outputs:
+
+```text
+05_outputs/model_results/shap_feature_importance.csv
+05_outputs/figures/shap_summary_plot.png
+```
+
+---
+
+## 3.7 Prediction Output and Risk Segmentation
 
 The selected Random Forest model was used to generate churn predictions for all customers.
 
@@ -340,7 +491,7 @@ High Risk customer output:
 
 ---
 
-## 3.5 Unsupervised Learning: KMeans Segmentation
+## 3.8 Unsupervised Learning: KMeans Segmentation
 
 KMeans clustering was applied only to customers who had already churned:
 
@@ -422,6 +573,8 @@ Key findings:
 * Some churned users were previously valuable customers with higher order count and cashback amount.
 * Not all churned users should receive the same promotion.
 * Risk-based retention and cluster-based promotion should be used together.
+* Threshold selection should depend on retention budget and campaign strategy.
+* SHAP explainability confirms that tenure, new customer status, complaints, and engagement-related features are important drivers of churn prediction.
 
 ---
 
@@ -438,6 +591,7 @@ For customers who are predicted to be at risk:
 3. Create mobile-category cross-sell campaigns.
 4. Use targeted cashback instead of broad discounts.
 5. Monitor Medium Risk customers before they become High Risk.
+6. Use threshold 0.40 when the business wants to capture more potential churned customers for retention campaigns.
 
 ### Cluster-Based Promotion
 
@@ -460,7 +614,7 @@ docs/business_recommendations.md
 ## 5.1 Project Structure
 
 ```text
-Ecommerce_Churn_Prediction_Pipeline/
+Ecommerce_Churn_Prediction_Machine_Learning_Pipeline/
 │
 ├── 00_setup/
 ├── 01_ingestion/
@@ -471,11 +625,13 @@ Ecommerce_Churn_Prediction_Pipeline/
 ├── 04_ml_pipeline/
 │   ├── preprocessing/
 │   ├── training/
+│   ├── tuning/
 │   ├── evaluation/
 │   ├── prediction/
 │   └── segmentation/
 │
 ├── 05_outputs/
+│   ├── figures/
 │   ├── model_results/
 │   ├── predictions/
 │   └── segments/
@@ -491,16 +647,23 @@ Ecommerce_Churn_Prediction_Pipeline/
 
 ## 5.2 Key Outputs
 
-| Output                       | Path                                                            |
-| ---------------------------- | --------------------------------------------------------------- |
-| Model comparison             | `05_outputs/model_results/model_comparison.csv`                 |
-| Feature importance           | `05_outputs/model_results/random_forest_feature_importance.csv` |
-| Churn predictions            | `05_outputs/predictions/churn_predictions.csv`                  |
-| High Risk customers          | `05_outputs/segments/high_risk_customers.csv`                   |
-| KMeans churned user segments | `05_outputs/segments/churned_user_kmeans_segments.csv`          |
-| Saved model                  | `06_models/random_forest_churn_model.pkl`                       |
-| SQL business analysis        | `07_sql_analysis/churn_business_queries.sql`                    |
-| Business recommendations     | `docs/business_recommendations.md`                              |
+| Output                             | Path                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| Model comparison                   | `05_outputs/model_results/model_comparison.csv`                           |
+| Random Forest feature importance   | `05_outputs/model_results/random_forest_feature_importance.csv`           |
+| Random Forest tuning comparison    | `05_outputs/model_results/random_forest_tuning_comparison.csv`            |
+| RandomizedSearchCV results         | `05_outputs/model_results/random_forest_randomized_search_cv_results.csv` |
+| Threshold analysis                 | `05_outputs/model_results/threshold_analysis.csv`                         |
+| SHAP feature importance            | `05_outputs/model_results/shap_feature_importance.csv`                    |
+| Threshold metric comparison figure | `05_outputs/figures/threshold_metric_comparison.png`                      |
+| Threshold customer flagging figure | `05_outputs/figures/threshold_customers_flagged.png`                      |
+| SHAP summary plot                  | `05_outputs/figures/shap_summary_plot.png`                                |
+| Churn predictions                  | `05_outputs/predictions/churn_predictions.csv`                            |
+| High Risk customers                | `05_outputs/segments/high_risk_customers.csv`                             |
+| KMeans churned user segments       | `05_outputs/segments/churned_user_kmeans_segments.csv`                    |
+| Saved final model                  | `06_models/random_forest_churn_model.pkl`                                 |
+| SQL business analysis              | `07_sql_analysis/churn_business_queries.sql`                              |
+| Business recommendations           | `docs/business_recommendations.md`                                        |
 
 ---
 
@@ -516,5 +679,7 @@ This project successfully answers the three main requirements:
 
 3. **Unsupervised Learning**
    KMeans clustering was applied to churned users only and identified two main churned-user groups for targeted promotion strategies.
+
+In addition, the machine learning layer was extended with hyperparameter tuning, cross-validation, threshold analysis, and SHAP explainability. These additions make the model evaluation more robust, more interpretable, and more useful for business decision-making.
 
 The final outputs help the company identify at-risk customers, understand churned-user behavior, and design more personalized retention and win-back campaigns.
