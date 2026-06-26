@@ -1,37 +1,56 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
 .venv/
 venv/
+env/
 
-# Environment variables
+# Environment variables / secrets
 .env
+*.env
 
-# Data files
-data/raw/*
-!data/raw/.gitkeep
+# Credentials / keys
+credentials/
+*.key
+*.pem
+*.json
 
-# Models
-06_models/*.pkl
-06_models/*.joblib
-
-# Outputs
-05_outputs/predictions/*
-05_outputs/segments/*
-05_outputs/reports/*
-05_outputs/figures/*
+# Local database / dbt profile
+02_dbt_churn/profiles.yml
+docker-compose.yml
 
 # Jupyter
 .ipynb_checkpoints/
 
-# dbt
+# dbt generated folders
 target/
 dbt_packages/
 logs/
+02_dbt_churn/target/
+02_dbt_churn/dbt_packages/
+02_dbt_churn/logs/
 
-# OS
+# Raw data
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/churn_prediction.csv
+
+# Generated / temporary data
+data/interim/
+data/processed/
+data/external/
+
+# Saved models
+06_models/*.pkl
+06_models/*.joblib
+
+# OS / editor
 .DS_Store
 Thumbs.db
-02_dbt_churn/profiles.yml
+.vscode/
 
-docker-compose.yml
+05_outputs/reports/
